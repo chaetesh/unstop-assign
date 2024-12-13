@@ -11,7 +11,9 @@ function App() {
   useEffect(() => {
     const fetchSeats = async () => {
       try {
-        const response = await axios.get("http://localhost:3000/seats");
+        const response = await axios.get(
+          "https://unstop-assign.onrender.com/seats"
+        );
         setSeats(response.data.seats);
       } catch (error) {
         console.error("Error fetching initial seat data:", error);
@@ -24,9 +26,12 @@ function App() {
   const handleSeatReservation = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("http://localhost:3000/reserve", {
-        seatCount: parseInt(seatCount),
-      });
+      const response = await axios.post(
+        "https://unstop-assign.onrender.com/reserve",
+        {
+          seatCount: parseInt(seatCount),
+        }
+      );
       setMessage(response.data.message);
       setSeats(response.data.seats);
       setReservedSeats(response.data.reservedSeats);
@@ -37,7 +42,9 @@ function App() {
 
   const handleResetSeats = async () => {
     try {
-      const response = await axios.post("http://localhost:3000/reset");
+      const response = await axios.post(
+        "https://unstop-assign.onrender.com/reset"
+      );
       setMessage(response.data.message);
       setSeats(response.data.seats);
       setReservedSeats([]);
