@@ -105,19 +105,20 @@ app.post("/reserve", (req, res) => {
   }
 
   let reservedSeats = [];
+  let remainingSeats = seatCount;
 
-  // Attempt to find a row with sufficient contiguous seats (preferably in the same row)
-  outerLoop: for (let i = 0; i < 80; i += 7) {
+  // First, attempt to book contiguous seats in the same row
+  for (let i = 0; i < 80; i += 7) {
     const rowSeats = seats.slice(i, i + 7);
 
-    // Check if there's enough contiguous available seats in the current row
+    // Try to book contiguous seats in this row
     for (
       let startIndex = 0;
-      startIndex <= rowSeats.length - seatCount;
+      startIndex <= rowSeats.length - remainingSeats;
       startIndex++
     ) {
       let canBook = true;
-      for (let j = startIndex; j < startIndex + seatCount; j++) {
+      for (let j = startIndex; j < startIndex + remainingSeats; j++) {
         if (seats[i + j]) {
           canBook = false; // If any seat is already booked, don't book this segment
           break;
@@ -126,19 +127,39 @@ app.post("/reserve", (req, res) => {
 
       if (canBook) {
         // Reserve the seats in the found segment
-        for (let j = startIndex; j < startIndex + seatCount; j++) {
+        for (let j = startIndex; j < startIndex + remainingSeats; j++) {
           seats[i + j] = true; // Mark seat as booked
           reservedSeats.push(i + j + 1); // Store 1-based index of seat
         }
-        break outerLoop; // Exit once seats are successfully booked
+        remainingSeats = 0; // All seats booked
+        break; // Exit once seats are successfully booked
       }
+    }
+
+    // If all seats are booked, stop searching
+    if (remainingSeats === 0) break;
+  }
+
+  // If enough contiguous seats were not found, book nearby seats across rows
+  if (remainingSeats > 0) {
+    // Try booking seats across multiple rows
+    outerLoop: for (let i = 0; i < 80 && remainingSeats > 0; i++) {
+      if (!seats[i]) {
+        seats[i] = true; // Mark seat as booked
+        reservedSeats.push(i + 1); // Store 1-based index of seat
+        remainingSeats--; // Decrease remaining seats to book
+      }
+
+      // If all seats are booked, stop the process
+      if (remainingSeats === 0) break outerLoop;
     }
   }
 
-  // If contiguous seats are not found, return an error
-  if (reservedSeats.length < seatCount) {
+  // If not enough seats were reserved, return an error
+  if (remainingSeats > 0) {
+    let partialbooked = seatCount - remainingSeats;
     return res.status(400).json({
-      message: "Not enough contiguous seats available in a single row.",
+      message: `Not enough seats available to reserve the requested amount. ${partialbooked} Seats Booked`,
     });
   }
 
